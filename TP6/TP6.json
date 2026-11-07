@@ -1,0 +1,525 @@
+{
+  "name": "TP6",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "19b9c0da-9b85-4f64-8a3b-aefdfc531517",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -464,
+        -112
+      ],
+      "webhookId": "5a80d736-3f1a-4b56-a468-bbfbf3f41e5c",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text || $json.message?.text || '' }}",
+        "options": {
+          "systemMessage": "ROL\nSos el asistente de recepción de consultas de Cinco Sentidos, un emprendimiento que ofrece tratamientos faciales y vende productos para el cuidado facial, corporal y capilar.\n\nOBJETIVO\n- Comprender qué necesita la persona.\n- Clasificar la consulta en una categoría.\n- Resumirla en forma clara para el equipo.\n\nCATEGORÍAS (usá exactamente uno de estos valores en tipo_consulta)\n- producto: productos faciales, corporales o capilares, incluidas consultas de precio o stock.\n- tratamiento: tratamientos faciales.\n- turno: pedir, reservar, cambiar o confirmar un turno.\n- otro: reacción o problema de salud, saludos u otros temas.\n\nREGLAS Y LÍMITES\n- No inventes precios, disponibilidad, ingredientes, beneficios, resultados ni horarios.\n- No diagnostiques afecciones ni recomiendes tratamientos personalizados.\n- Si la persona menciona irritación, alergia, reacción adversa, dolor u otro problema de salud, no des recomendaciones: indicá suspender el uso del producto y que una persona del equipo la va a contactar.\n- No confirmes reservas, compras, pagos ni entregas.\n- responde siempre en castellano\n\nSi el mensaje es incoherente, contiene solo sonidos repetidos o no permite identificar una consulta, pedí que lo repitan o lo escriban. No inventes una intención.\n\nPara datos del negocio consultá Base de Conocimiento. Respondé en español con un máximo de 200 caracteres. No incluyas URL, emojis, viñetas ni JSON. No confirmes turnos sin una herramienta de agenda."
+        }
+      },
+      "id": "7028448b-7ca0-4061-9388-e0bf98c37bc5",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -272
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {
+          "maxTokensToSample": 500
+        }
+      },
+      "id": "76e3dcad-2cb7-460f-a39f-a6fd55d585ca",
+      "name": "Modelo Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -48
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}"
+      },
+      "id": "1fc981fb-f1f2-4522-b675-4239c833c3cc",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "=https://docs.google.com/document/d/1ICymuV7g9PWWbqqtrMjH577Q7fnDz_AYcwYmkYY7KKY/edit?usp=drive_link"
+      },
+      "id": "4464d90e-af22-4691-8fd2-0a52e9ead0d9",
+      "name": "Base de Conocimiento",
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        928,
+        -48
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "VwGGNP5I0Zopw2bl",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "02f42bc4-ba80-457d-a7ad-da02c3d46aab",
+              "leftValue": "={{ !!$json.message?.voice?.file_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f3291f61-c254-42ec-9a22-f1968daf44ac",
+      "name": "¿Es nota de voz?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "81dec35c-a17c-4b36-8bbf-562d0713c1a4",
+      "name": "Descargar audio Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        -160
+      ],
+      "webhookId": "95e80398-9d37-405b-8aed-b0a7d63711f0",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "es"
+        }
+      },
+      "id": "6f5adb22-7033-4442-a89d-6ce60863a4be",
+      "name": "Whisper - Transcribir audio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        208,
+        -160
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "RseOCfFbLbrsbmWt",
+          "name": "OpenAI account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fbd44509-fde8-4356-a79b-87fddcc4ba57",
+              "leftValue": "={{ !!$json.text?.trim() && !$json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "67749223-24fc-4784-9afb-69c2ebdba965",
+      "name": "¿Transcripción válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "No pude procesar el audio. Intentá con una nota de voz más clara o escribí tu consulta.",
+        "additionalFields": {}
+      },
+      "id": "6258cc22-3c4c-4624-9b76-9846676fda5f",
+      "name": "Aviso - Audio no procesado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        784,
+        128
+      ],
+      "webhookId": "66132ae5-ea65-43b2-87d5-8c15d122f6af",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1d0baefc-6c20-4eb9-b15b-dce1eb710049",
+              "leftValue": "={{ !!$('Telegram Trigger').item.json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "81389cf8-ad3b-4276-b696-206ed805625f",
+      "name": "¿Responder con audio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "id": "a39e819c-8aff-4fa8-acbe-2c64d0cd6212",
+      "name": "Enviar respuesta de voz",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1568,
+        -208
+      ],
+      "webhookId": "99ef4d8b-780c-440c-92b6-8fac04dbb1c5",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "voice": {
+          "__rl": true,
+          "value": "EXAVITQu4vr4xnSDxMaL",
+          "mode": "list",
+          "cachedResultName": "Sarah - Mature, Reassuring, Confident"
+        },
+        "text": "={{ $json.output }}",
+        "additionalOptions": {},
+        "requestOptions": {}
+      },
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        -208
+      ],
+      "id": "20e03f4d-35e5-4fbd-8833-c50d39f3524a",
+      "name": "Convertir texto en Audio",
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "vzXjsBMJycghgUb6",
+          "name": "ElevenLabs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "id": "ac98d6fc-90cd-4a65-a3ae-678ff6e46ac7",
+      "name": "Enviar Mensaje a Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1344,
+        -16
+      ],
+      "webhookId": "aaabee37-ad05-4236-9efa-d6c7f63fa049",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Cinco Sentidos – Asistente de Voz (TP6)\nVoice AI: recepción y respuesta por texto o audio (Módulo 6)\n\n**Entrada:**\nTelegram Trigger → IF ¿Es nota de voz?\n• Sí → Descargar audio → Whisper → IF ¿Transcripción válida?\n• No → AI Agent con el mensaje escrito.\n\n**Transcripción:**\nWhisper convierte el audio en texto.\n• Válida → AI Agent.\n• Vacía o con error → Aviso por Telegram y fin de esa rama.\n\n**Agente:**\nModelo Groq + Simple Memory por chat de Telegram.\nHerramienta Google Docs: base de conocimiento del negocio.\nResponde en español, sin inventar datos ni confirmar turnos.\nSi la consulta es incomprensible, pide repetirla o escribirla.\n\n**Salida:**\nIF ¿Responder con audio?\n• Sí → ElevenLabs convierte texto en audio → Telegram Send Audio.\n• No → Enviar mensaje de texto por Telegram.\n\n**Reglas para voz:**\nMáximo 200 caracteres por respuesta.\nSin URL, emojis ni viñetas complejas.",
+        "height": 528,
+        "width": 528
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -464,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "38a28756-eb56-45a5-9879-c8b09e668bb6",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "¿Es nota de voz?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "¿Responder con audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base de Conocimiento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es nota de voz?": {
+      "main": [
+        [
+          {
+            "node": "Descargar audio Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar audio Telegram": {
+      "main": [
+        [
+          {
+            "node": "Whisper - Transcribir audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Whisper - Transcribir audio": {
+      "main": [
+        [
+          {
+            "node": "¿Transcripción válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Transcripción válida?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso - Audio no procesado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Responder con audio?": {
+      "main": [
+        [
+          {
+            "node": "Convertir texto en Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar Mensaje a Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir texto en Audio": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta de voz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "5c18688e-06e6-42fc-803c-4d026738c080",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ab87367ab53ca13eca24e9c8e2892240b8ad2c96e5f37446be3c7dc5df162b0f"
+  },
+  "nodeGroups": [],
+  "id": "s6CsKynEKBI2kswR",
+  "tags": []
+}

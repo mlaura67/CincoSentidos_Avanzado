@@ -1,0 +1,321 @@
+{
+  "name": "TP2 - Worker Productos (Cinco Sentidos)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje_original",
+              "type": "string"
+            },
+            {
+              "name": "tipo_consulta",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "35bb0391-c6d3-4dd7-ac26-f9156bdf22b0",
+      "typeVersion": 1.1,
+      "name": "Entrada Worker Productos",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 703811774,
+          "mode": "list",
+          "cachedResultName": "Productos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=703811774"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "id": "207496b8-b762-472e-a5c6-480bb417a093",
+      "name": "Leer catálogo Productos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "catalogo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        440,
+        200
+      ],
+      "id": "43ac3c7d-a1a1-4c65-9f4b-62b21a4d5aa6",
+      "name": "Agrupar Productos"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta del cliente: ' + $('Entrada Worker Productos').first().json.mensaje_original + '\\nCatálogo de productos: ' + JSON.stringify($json.catalogo) }}",
+        "options": {
+          "systemMessage": "Sos el Worker de productos de Cinco Sentidos (cosmetología). Tu única tarea es buscar en el catálogo recibido el/los productos que pide el cliente y responder con datos reales del catálogo.\nREGLAS:\n- Usá únicamente la información del catálogo. No inventes nombres, precios, stock, beneficios ni resultados.\n- Informá el stock solo si preguntan por disponibilidad; si el stock es 0, decí que por el momento no hay unidades y que el equipo puede avisar cuando vuelva a ingresar.\n- No muestres al cliente textos internos de la planilla como 'Completar marca...' o 'Servicio de ejemplo'.\n- Si no encontrás lo solicitado, poné encontrado=false, requiere_humano=true y decí que una persona del equipo lo va a confirmar.\n- Si la consulta menciona reacción, irritación, alergia o un problema de salud, no recomiendes nada: indicá suspender el uso y que una persona del equipo se va a comunicar; requiere_humano=true.\nFORMATO: respondé SOLO un objeto JSON válido, sin texto extra ni bloques de código:\n{\"encontrado\": true, \"data\": {\"codigo\": \"\", \"nombre\": \"\", \"detalle\": \"\", \"precio\": 0, \"stock\": 0}, \"respuesta_cliente\": \"mensaje breve, cálido y en español\", \"requiere_humano\": false}",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        660,
+        200
+      ],
+      "id": "754d84cb-57e2-423b-909b-f55f3e323f96",
+      "name": "Agente Productos",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        660,
+        420
+      ],
+      "id": "a2bdbe56-4d98-4da7-a16b-88c8be5e3c02",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08cc00e3-a9bc-425b-bc12-068433906ccb",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "a4ee76a5-e05e-447f-93f8-ce29b5f77ba4",
+              "name": "worker",
+              "value": "productos",
+              "type": "string"
+            },
+            {
+              "id": "c91b1a20-3a90-4216-828d-9b9fe922d989",
+              "name": "parametros_recibidos",
+              "value": "={{ { mensaje_original: $('Entrada Worker Productos').first().json.mensaje_original, tipo_consulta: $('Entrada Worker Productos').first().json.tipo_consulta } }}",
+              "type": "object"
+            },
+            {
+              "id": "dea83a2f-7d3b-4768-8995-9f73cf64fc0b",
+              "name": "encontrado",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.encontrado ?? false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "f56e6dae-d312-4d7a-98ff-f1ac5bfb3e69",
+              "name": "data",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.data ?? {} }}",
+              "type": "object"
+            },
+            {
+              "id": "d59223fd-aad1-4721-a5c6-a7cd495e8cbd",
+              "name": "respuesta_cliente",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.respuesta_cliente || $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "9a841344-b180-476c-b2b8-f52f424d5129",
+              "name": "requiere_humano",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })() ? Boolean((() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })().requiere_humano) : true }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        120
+      ],
+      "id": "0d5450a5-435a-4cc6-8ea8-60b9def95e86",
+      "name": "Salida estructurada (success)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "82524f26-5457-4221-b482-af6d90e19b17",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "94ac2f2b-1489-4f9c-bf89-3d19122b0a4a",
+              "name": "worker",
+              "value": "productos",
+              "type": "string"
+            },
+            {
+              "id": "75cfa9d5-58d0-4b7f-b33f-730aacee98b0",
+              "name": "parametros_recibidos",
+              "value": "={{ { mensaje_original: $('Entrada Worker Productos').first().json.mensaje_original, tipo_consulta: $('Entrada Worker Productos').first().json.tipo_consulta } }}",
+              "type": "object"
+            },
+            {
+              "id": "0ba293fc-f7a3-4400-84de-dd76742d0b61",
+              "name": "encontrado",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "74387ae1-07be-47f8-9abd-59026c35fbab",
+              "name": "data",
+              "value": "={{ {} }}",
+              "type": "object"
+            },
+            {
+              "id": "116c0f37-1642-4ed4-a967-1588ebb18f08",
+              "name": "respuesta_cliente",
+              "value": "En este momento no pude consultar el catálogo de productos. Ya le pasé tu consulta al equipo y te van a responder a la brevedad.",
+              "type": "string"
+            },
+            {
+              "id": "ad45244a-190d-475d-ac40-ca8588897c2d",
+              "name": "requiere_humano",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7b99a8d2-c4c3-4815-a470-4f1f9ed55997",
+              "name": "error",
+              "value": "={{ $json.error?.message || $json.error || 'Error no especificado' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        420
+      ],
+      "id": "9a71580f-0b06-46e9-b12b-978ebf89457b",
+      "name": "Salida de contingencia (error)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada Worker Productos": {
+      "main": [
+        [
+          {
+            "node": "Leer catálogo Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer catálogo Productos": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Productos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida de contingencia (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Productos": {
+      "main": [
+        [
+          {
+            "node": "Agente Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Productos": {
+      "main": [
+        [
+          {
+            "node": "Salida estructurada (success)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida de contingencia (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Productos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 60,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": []
+}

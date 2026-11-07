@@ -1,0 +1,393 @@
+{
+  "name": "Cinco Sentidos - Atención y supervisión TP2",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "27f69ab6-963d-466c-8913-fd15f34153a5",
+      "name": "Recibir consulta",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -448,
+        352
+      ],
+      "webhookId": "d057ed9d-b28a-4d99-9d56-27a716311a47",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Cliente: {{ $json.message.from.first_name }} {{ $json.message.from.last_name || '' }}\nContacto: Telegram {{ $json.message.from.username ? '@' + $json.message.from.username : '' }} (chat ID {{ $json.message.chat.id }})\nMensaje: {{ $json.message.text }}",
+        "options": {
+          "systemMessage": "FORMATO DE RESPUESTA\nRespondé SOLO con un objeto JSON válido, sin texto adicional ni bloques de código:\n{\n  \"tipo_consulta\": \"producto, tratamiento, turno u otro\",\n  \"respuesta_cliente\": \"Mensaje breve, cálido y en español. Agradecé la consulta y pedí los datos que falten. No inventes información. Si es una consulta de producto o tratamiento, indicá que vas a revisar el catálogo. Si requiere atención humana, avisá que el equipo responderá.\",\n  \"resumen_equipo\": \"Consulta: ...\\nCategoría: ...\\nPrioridad: ...\\nMotivo: ...\\nDatos faltantes: ...\\nRequiere atención humana: Sí/No\\nRegistro: Registrada/No registrada\"\n}\nEn \"tipo_consulta\", usá exactamente uno de estos valores:\n- \"producto\" para productos faciales, corporales o capilares, incluidas consultas de precio o stock.\n- \"tratamiento\" para tratamientos faciales.\n- \"turno\" para solicitudes de turnos.\n- \"otro\" para salud, reacciones, saludos u otros temas.\nEn \"Registro\" poné \"Registrada\" solo si la herramienta de registro se ejecutó sin error.\nSi la consulta es sobre solicitar, reservar, cambiar o confirmar un turno, clasificá \"tipo_consulta\" como \"turno\". En \"respuesta_cliente\", pedile a la persona que escriba exactamente \"turno\" para derivarla a una secretaria y coordinarlo. No confirmes ni reserves el turno.\nSi la persona consulta por un turno o una reserva, clasificá tipo_consulta como turno. No solicites servicio, fecha ni hora y no confirmes disponibilidad. La respuesta debe decir: “Para coordinar tu turno, respondé turno y te derivamos a una secretaria",
+          "maxIterations": 10
+        }
+      },
+      "id": "f7e66862-d0bf-4d9d-9377-f63d9c93a9d1",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -256,
+        352
+      ],
+      "notes": "A ocurrido un error avise al administrador"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Registra una consulta concreta de un cliente de Cinco Sentidos como una fila nueva en la planilla de consultas. No usar para saludos sin consulta.",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jnjAIRD51AD42rI7zbqw1O0-9A24WvX8uWZAM32aL14",
+          "mode": "list",
+          "cachedResultName": "Consultas_Cinco_Sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnjAIRD51AD42rI7zbqw1O0-9A24WvX8uWZAM32aL14/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 491892233,
+          "mode": "list",
+          "cachedResultName": "Consultas_Cinco_Sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jnjAIRD51AD42rI7zbqw1O0-9A24WvX8uWZAM32aL14/edit#gid=491892233"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $now.setZone(\"America/Argentina/Buenos_Aires\").toFormat(\"yyyy-MM-dd HH:mm\") }}",
+            "cliente": "={{ $(\"Recibir consulta\").item.json.message.from.first_name }} {{ $(\"Recibir consulta\").item.json.message.from.last_name || \"\" }}",
+            "usuario_telegram": "={{ $(\"Recibir consulta\").item.json.message.from.username ? \"@\" + $(\"Recibir consulta\").item.json.message.from.username : \"chat \" + $(\"Recibir consulta\").item.json.message.chat.id }}",
+            "mensaje_original": "={{ $(\"Recibir consulta\").item.json.message.text }}",
+            "resumen": "={{ $fromAI(\"resumen\", \"Resumen breve y claro de la consulta\", \"string\") }}",
+            "categoria": "={{ $fromAI(\"categoria\", \"Una de: Tratamiento facial, producto facial, producto corporal, producto capilar, turno, reacción o problema de salud, otra consulta\", \"string\") }}",
+            "prioridad": "={{ $fromAI(\"prioridad\", \"Alta, Media o Baja\", \"string\") }}",
+            "requiere_atencion_humana": "={{ $fromAI(\"requiere_atencion_humana\", \"Sí o No\", \"string\") }}",
+            "estado": "Pendiente de revisión"
+          },
+          "schema": [
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cliente",
+              "displayName": "cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "usuario_telegram",
+              "displayName": "usuario_telegram",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mensaje_original",
+              "displayName": "mensaje_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumen",
+              "displayName": "resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prioridad",
+              "displayName": "prioridad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requiere_atencion_humana",
+              "displayName": "requiere_atencion_humana",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fe98c4a0-6997-497a-bf24-1cc7ac2f52e4",
+      "name": "Nueva consulta para revisar",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -48,
+        624
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#consultas-cinco-sentidos",
+          "mode": "name"
+        },
+        "text": "=*Nueva consulta en Cinco Sentidos*\n*Cliente:* {{ $(\"Recibir consulta\").item.json.message.from.first_name }} {{ $(\"Recibir consulta\").item.json.message.from.last_name || '' }} (Telegram {{ $(\"Recibir consulta\").item.json.message.from.username ? '@' + $(\"Recibir consulta\").item.json.message.from.username : 'chat ' + $(\"Recibir consulta\").item.json.message.chat.id }})\n*Mensaje:* {{ $(\"Recibir consulta\").item.json.message.text }}\n\n*Respuesta del asistente:*\n{{ (() => { try { return JSON.parse($(\"AI Agent\").item.json.output).resumen_equipo } catch (e) { return $(\"AI Agent\").item.json.output } })() }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "41dcd407-bae8-47a2-b5a8-f9e5dbf77ee8",
+      "name": "Aviso de supervisión",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        576,
+        256
+      ],
+      "webhookId": "1fdf6722-fd7b-4d52-992d-c8395fe9c845",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "wmnekaRGUJ5gS7uV",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $(\"Recibir consulta\").item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "afc94b93-854c-4895-9316-92182e35d090",
+      "name": "Responder al cliente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        576,
+        448
+      ],
+      "webhookId": "458e5615-c006-4569-9aa6-5af83504ff01",
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        608
+      ],
+      "id": "9446acb8-c647-42d4-8fbf-60d8a7e75c29",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "HS4ojR8vlWX6cVYV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/HS4ojR8vlWX6cVYV",
+          "cachedResultName": "Sub-Workflow-catalogo-tratamiento 1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje_original": "={{ $('Recibir consulta').item.json.message.text }}",
+            "chat_id": "={{ $('Recibir consulta').item.json.message.chat.id }}",
+            "tipo_consulta": "={{ JSON.parse($('AI Agent').item.json.output).tipo_consulta }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje_original",
+              "displayName": "mensaje_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        80,
+        336
+      ],
+      "id": "29c25a76-8ed6-4fcc-9e5a-8ea97e711501",
+      "name": "Execute Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibir consulta": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nueva consulta para revisar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Aviso de supervisión",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "db87f543-92a2-49f0-aa94-04aa0d3b37ac",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ab87367ab53ca13eca24e9c8e2892240b8ad2c96e5f37446be3c7dc5df162b0f"
+  },
+  "nodeGroups": [],
+  "id": "s8DiTL0V3hp3ZEEi",
+  "tags": []
+}

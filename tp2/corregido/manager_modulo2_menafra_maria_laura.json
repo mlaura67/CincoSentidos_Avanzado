@@ -1,0 +1,1122 @@
+{
+  "name": "TP2 - Manager Cinco Sentidos (Atención y supervisión)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "6b55ed76-9603-45af-b435-48ff6d2e7e31",
+      "name": "Recibir consulta",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ccca93d8-4a24-4d66-83b1-763315d1cd53",
+              "leftValue": "={{ String($json.message.text || '').trim().toLowerCase() }}",
+              "rightValue": "turno",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        400
+      ],
+      "id": "fbd53d53-2134-4ddc-b58f-d3455346319f",
+      "name": "¿Respondió \"turno\"?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "869f2dc9-00a0-44e0-a698-9415feface03",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "50c1c1bb-1cb0-4f33-833f-8367fd567c54",
+              "name": "worker",
+              "value": "derivacion_secretaria",
+              "type": "string"
+            },
+            {
+              "id": "74904416-f49e-4056-a8ea-9ddd78716981",
+              "name": "tipo_consulta",
+              "value": "turno",
+              "type": "string"
+            },
+            {
+              "id": "7b067f15-4666-43e3-bf4c-5fc1ae41e5b2",
+              "name": "prioridad",
+              "value": "Media",
+              "type": "string"
+            },
+            {
+              "id": "836586e3-a303-46d9-8d13-ba8f69460110",
+              "name": "resumen",
+              "value": "El cliente confirmó que quiere coordinar un turno.",
+              "type": "string"
+            },
+            {
+              "id": "549c3c9c-7628-429f-b183-3e6609a4867c",
+              "name": "parametros_enviados",
+              "value": "={{ JSON.stringify({ mensaje_original: $('Recibir consulta').first().json.message.text }) }}",
+              "type": "string"
+            },
+            {
+              "id": "1c321537-ad36-4214-b411-8868b4cf47f3",
+              "name": "respuesta_cliente",
+              "value": "¡Listo! Ya le avisamos a la secretaria y se va a comunicar con vos por este chat para coordinar el turno.",
+              "type": "string"
+            },
+            {
+              "id": "597891b5-96a9-4e48-a810-19b67b790461",
+              "name": "requiere_humano",
+              "value": "={{ true }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        140
+      ],
+      "id": "850eab33-1ed6-4be2-bb6b-a9dee464f919",
+      "name": "Derivación a secretaria"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Cliente: {{ $json.message.from.first_name }} {{ $json.message.from.last_name || '' }}\nMensaje: {{ $json.message.text || '(mensaje sin texto)' }}",
+        "options": {
+          "systemMessage": "Sos el clasificador (router) de Cinco Sentidos, emprendimiento de cosmetología con tratamientos faciales y productos de cuidado facial, corporal y capilar.\nTu única tarea es clasificar el mensaje en UNA categoría de esta taxonomía cerrada:\n- producto: productos faciales, corporales o capilares (precio, stock, presentación).\n- tratamiento: tratamientos o servicios faciales (qué incluye, precio).\n- turno: pedir, reservar, cambiar o cancelar un turno.\n- otro: reacciones, irritaciones o problemas de salud, saludos, reclamos o cualquier tema fuera de las categorías anteriores, o si dudás.\nFORMATO: respondé SOLO un objeto JSON válido, sin texto extra ni bloques de código:\n{\"tipo_consulta\": \"producto|tratamiento|turno|otro\", \"prioridad\": \"Alta|Media|Baja\", \"resumen_equipo\": \"resumen breve de la consulta para el equipo\", \"respuesta_cliente\": \"mensaje breve y cálido en español\"}\nREGLAS para respuesta_cliente:\n- producto o tratamiento: decí que vas a revisar el catálogo (el especialista responderá con los datos).\n- turno: no confirmes fecha, hora ni disponibilidad.\n- otro: si es una reacción o problema de salud, no diagnostiques ni recomiendes productos; indicá suspender el uso del producto y que una persona del equipo se va a comunicar (prioridad Alta). Si es un saludo, saludá y preguntá en qué podés ayudar.\nNunca inventes precios, stock ni datos del catálogo.",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        480,
+        480
+      ],
+      "id": "30e98c2a-516d-4aaf-a34d-95b974bca650",
+      "name": "Clasificador de intención",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        480,
+        700
+      ],
+      "id": "c796e9b0-f2f0-4ea9-9425-a60b03febb39",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e52475eb-4346-4f2c-9921-a834300537f0",
+              "name": "mensaje_original",
+              "value": "={{ $('Recibir consulta').first().json.message.text || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b3c600bf-4785-4a8a-955c-8e69fe01d0cc",
+              "name": "tipo_consulta",
+              "value": "={{ ['producto','tratamiento','turno','otro'].includes(String((() => { try { return JSON.parse(String($('Clasificador de intención').first().json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.tipo_consulta || '').toLowerCase().trim()) ? String((() => { try { return JSON.parse(String($('Clasificador de intención').first().json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })().tipo_consulta).toLowerCase().trim() : 'otro' }}",
+              "type": "string"
+            },
+            {
+              "id": "46e22213-2792-40ac-a8e5-65f0e640679d",
+              "name": "prioridad",
+              "value": "={{ (() => { try { return JSON.parse(String($('Clasificador de intención').first().json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.prioridad || 'Media' }}",
+              "type": "string"
+            },
+            {
+              "id": "5e9a3bdd-e506-42bc-83cd-7af7b231e556",
+              "name": "resumen",
+              "value": "={{ (() => { try { return JSON.parse(String($('Clasificador de intención').first().json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.resumen_equipo || 'Sin resumen' }}",
+              "type": "string"
+            },
+            {
+              "id": "d193a105-d137-4ead-9154-287f405eda4f",
+              "name": "respuesta_clasificador",
+              "value": "={{ (() => { try { return JSON.parse(String($('Clasificador de intención').first().json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.respuesta_cliente || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        420
+      ],
+      "id": "77024e31-7f00-4401-92ca-3b6446fbfd47",
+      "name": "Preparar datos para Worker"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "67c4cb8a-35f8-4332-837c-9acff727b2d0",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "producto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "producto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e9b3299e-b755-43e9-a1bf-f817f9ea5a09",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "tratamiento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tratamiento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f2a1287f-0fae-4491-a72f-3d194bdc43a9",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "turno",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "turno"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "otro"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1040,
+        420
+      ],
+      "id": "9def4d3e-e53e-43f2-9da7-5e79189710a5",
+      "name": "Enrutar por intención"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ELEGIR_WORKER_PRODUCTOS",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje_original": "={{ $json.mensaje_original }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje_original",
+              "displayName": "mensaje_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        180
+      ],
+      "id": "52ae4e7d-e56b-4562-89d4-5c51fd93db67",
+      "name": "Llamar Worker Productos",
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ELEGIR_WORKER_TRATAMIENTOS",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje_original": "={{ $json.mensaje_original }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje_original",
+              "displayName": "mensaje_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        400
+      ],
+      "id": "92af4980-5ffd-4d1d-9549-d278dc9408fc",
+      "name": "Llamar Worker Tratamientos",
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08b2cadc-2473-42be-9724-2697c3ab455f",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "337dfbf8-7a5a-45f4-8239-d69779bf37af",
+              "name": "worker",
+              "value": "ninguno (regla de turnos)",
+              "type": "string"
+            },
+            {
+              "id": "107bc7ed-b5aa-4f12-a910-447fa032bd05",
+              "name": "parametros_enviados",
+              "value": "={{ JSON.stringify({ mensaje_original: $json.mensaje_original, tipo_consulta: $json.tipo_consulta }) }}",
+              "type": "string"
+            },
+            {
+              "id": "8b15c1b0-e58f-47d9-ae98-7e474adee288",
+              "name": "respuesta_cliente",
+              "value": "Para coordinar tu turno, respondé «turno» y te derivamos a una secretaria.",
+              "type": "string"
+            },
+            {
+              "id": "b99c9b74-d836-44f0-9fc6-91cc8b11a54d",
+              "name": "requiere_humano",
+              "value": "={{ false }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1300,
+        620
+      ],
+      "id": "c39cb7b6-1d07-463b-a0ea-54680b64409c",
+      "name": "Respuesta turno"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90678655-2b9b-411e-9c1f-ebdb76317121",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "18562104-22fe-41d9-a5e2-530494db86c7",
+              "name": "worker",
+              "value": "ninguno (escalamiento humano)",
+              "type": "string"
+            },
+            {
+              "id": "7d456a05-60d8-4498-b790-4575bdf8dd53",
+              "name": "parametros_enviados",
+              "value": "={{ JSON.stringify({ mensaje_original: $json.mensaje_original, tipo_consulta: $json.tipo_consulta }) }}",
+              "type": "string"
+            },
+            {
+              "id": "6f128cdf-8a68-4295-bb88-314fc9ca0119",
+              "name": "respuesta_cliente",
+              "value": "={{ $json.respuesta_clasificador || 'Gracias por escribirnos. Una persona del equipo te va a responder a la brevedad.' }}",
+              "type": "string"
+            },
+            {
+              "id": "bff658f6-f6f1-4a31-839c-33f63e638b42",
+              "name": "requiere_humano",
+              "value": "={{ true }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1300,
+        820
+      ],
+      "id": "b714c5a8-731f-4ba3-a5c1-a6d80c668475",
+      "name": "Derivar a persona del equipo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1516c0e-aecb-4ff0-b8f8-95b4af7dfd8a",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "8380fa51-8ad4-4d95-9767-63dd7cc307c3",
+              "name": "worker",
+              "value": "={{ 'worker_' + $('Preparar datos para Worker').first().json.tipo_consulta + ' (sin respuesta)' }}",
+              "type": "string"
+            },
+            {
+              "id": "71f5e373-c11a-4c61-9ebe-aee11d483b32",
+              "name": "parametros_enviados",
+              "value": "={{ JSON.stringify({ mensaje_original: $('Preparar datos para Worker').first().json.mensaje_original, tipo_consulta: $('Preparar datos para Worker').first().json.tipo_consulta }) }}",
+              "type": "string"
+            },
+            {
+              "id": "cb75c155-5291-4959-ac80-772d256323db",
+              "name": "respuesta_cliente",
+              "value": "Gracias por tu consulta. En este momento no pudimos revisar el catálogo; ya se la pasamos al equipo y te van a responder a la brevedad.",
+              "type": "string"
+            },
+            {
+              "id": "b6bda36b-86a8-4daf-810e-1371a217ff81",
+              "name": "requiere_humano",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "2234536d-af17-4e2d-8eb4-74d84e5a6093",
+              "name": "error",
+              "value": "={{ $json.error?.message || $json.error || 'El Worker no respondió' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        40
+      ],
+      "id": "62103b0d-0d63-4c9d-9882-a65f75ca5fb2",
+      "name": "Contingencia Worker caído"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "06bd570d-3200-407e-92ad-42088dafbb53",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "c8caa59a-a1f1-4ba2-8b13-be88ce40a34c",
+              "name": "worker",
+              "value": "clasificador (Manager)",
+              "type": "string"
+            },
+            {
+              "id": "2288a666-1911-4d37-b5b9-507ab8eb3034",
+              "name": "tipo_consulta",
+              "value": "sin clasificar",
+              "type": "string"
+            },
+            {
+              "id": "12b9b197-46e8-4be1-8c66-5bb8638e28ef",
+              "name": "prioridad",
+              "value": "Alta",
+              "type": "string"
+            },
+            {
+              "id": "69f449cd-9ba1-4476-ac9d-3541ac21a085",
+              "name": "resumen",
+              "value": "Falló la clasificación automática",
+              "type": "string"
+            },
+            {
+              "id": "2c7a5b02-dd2e-4ab5-9690-8e184fd9e1b4",
+              "name": "parametros_enviados",
+              "value": "{}",
+              "type": "string"
+            },
+            {
+              "id": "51c0fb5c-5dd0-47b4-9e5f-5736d4d208ad",
+              "name": "respuesta_cliente",
+              "value": "Gracias por escribirnos. Una persona del equipo te va a responder a la brevedad.",
+              "type": "string"
+            },
+            {
+              "id": "974ec683-13aa-461b-a6c3-4aee0fb8e604",
+              "name": "requiere_humano",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "3e8fde6d-31c6-4815-9686-2b72a862fcae",
+              "name": "error",
+              "value": "={{ $json.error?.message || $json.error || 'Error en el clasificador' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        700
+      ],
+      "id": "b9005131-a151-401d-b95a-f54641980a08",
+      "name": "Contingencia clasificador"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ecbf64dc-f60a-4a5a-a832-f013ecf79a60",
+              "name": "tipo_consulta",
+              "value": "={{ $json.tipo_consulta || (() => { try { return $('Preparar datos para Worker').first().json.tipo_consulta } catch (e) { return 'sin clasificar' } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "59623c72-d652-477f-bf42-f605214e3903",
+              "name": "prioridad",
+              "value": "={{ $json.prioridad || (() => { try { return $('Preparar datos para Worker').first().json.prioridad } catch (e) { return 'Media' } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "b7338833-0ab2-486d-bb7f-8a8d4be2b8b5",
+              "name": "resumen",
+              "value": "={{ $json.resumen || (() => { try { return $('Preparar datos para Worker').first().json.resumen } catch (e) { return 'Sin resumen' } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "3f1e2510-7c7b-4d12-9280-12dd957ebd43",
+              "name": "worker",
+              "value": "={{ $json.worker || 'desconocido' }}",
+              "type": "string"
+            },
+            {
+              "id": "d18f1314-e23b-4cdc-a230-5345af4ff6cc",
+              "name": "status",
+              "value": "={{ $json.status || 'error' }}",
+              "type": "string"
+            },
+            {
+              "id": "719ee61d-e38f-4a58-bcbf-f5c71b4fb712",
+              "name": "parametros_enviados",
+              "value": "={{ $json.parametros_enviados || JSON.stringify($json.parametros_recibidos || {}) }}",
+              "type": "string"
+            },
+            {
+              "id": "b2b17cfe-8cbd-4d42-971e-560488a03404",
+              "name": "data_devuelta",
+              "value": "={{ JSON.stringify($json.data || {}) }}",
+              "type": "string"
+            },
+            {
+              "id": "888dfd73-d4d8-4a99-93d3-0328cb23c138",
+              "name": "respuesta_cliente",
+              "value": "={{ $json.respuesta_cliente || 'Gracias por escribirnos. Una persona del equipo te va a responder a la brevedad.' }}",
+              "type": "string"
+            },
+            {
+              "id": "37482088-d1e4-412e-a8a9-a6ca8a1bde9c",
+              "name": "requiere_humano",
+              "value": "={{ $json.requiere_humano === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e06d2935-360c-4b3b-a1ff-aebd8f0170d8",
+              "name": "error",
+              "value": "={{ $json.error || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1820,
+        420
+      ],
+      "id": "083ec7e3-1800-4c05-bf84-eea438d6c50c",
+      "name": "Registro final (contexto unificado)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Recibir consulta').first().json.message.chat.id }}",
+        "text": "={{ $json.respuesta_cliente }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "8ad71ada-7422-444c-bb5d-6b89bcee9404",
+      "name": "Responder al cliente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        260
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#consultas-cinco-sentidos",
+          "mode": "name"
+        },
+        "text": "={{ $json.worker === 'derivacion_secretaria' ? ':calendar: *PEDIDO DE TURNO – la secretaria debe contactar al cliente*\\n' : '' }}*Cinco Sentidos – Registro de orquestación*\n*Cliente:* {{ $('Recibir consulta').first().json.message.from.first_name }} {{ $('Recibir consulta').first().json.message.from.last_name || '' }} (Telegram {{ $('Recibir consulta').first().json.message.from.username ? '@' + $('Recibir consulta').first().json.message.from.username : 'chat ' + $('Recibir consulta').first().json.message.chat.id }})\n*Mensaje:* {{ $('Recibir consulta').first().json.message.text }}\n*Tipo de consulta:* {{ $json.tipo_consulta }} | *Prioridad:* {{ $json.prioridad }}\n*Worker invocado:* {{ $json.worker }}\n*Parámetros enviados:* `{{ $json.parametros_enviados }}`\n*Estado:* {{ $json.status }}\n*Datos devueltos por el Worker:* `{{ $json.data_devuelta }}`\n*Respuesta enviada al cliente:* {{ $json.respuesta_cliente }}\n*Requiere atención humana:* {{ $json.requiere_humano ? 'Sí' : 'No' }}{{ $json.error ? '\\n*Error:* ' + $json.error : '' }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": true
+        }
+      },
+      "id": "cd53fe6f-80a3-4b60-a5a1-c72ec8847403",
+      "name": "Log de trazabilidad (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2080,
+        440
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "wmnekaRGUJ5gS7uV",
+          "name": "Slack account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Consultas",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH:mm') }}",
+            "Nombre o usuario": "={{ $('Recibir consulta').first().json.message.from.first_name }} {{ $('Recibir consulta').first().json.message.from.username ? '(@' + $('Recibir consulta').first().json.message.from.username + ')' : '' }}",
+            "Consulta original": "={{ $('Recibir consulta').first().json.message.text }}",
+            "Tipo de consulta": "={{ $json.tipo_consulta }}",
+            "Resumen": "={{ $json.resumen }}",
+            "Prioridad": "={{ $json.prioridad }}",
+            "Estado": "={{ $json.status === 'error' ? 'Error – revisar' : ($json.requiere_humano ? 'Pendiente de revisión' : 'Respondida automáticamente') }}",
+            "Requiere atención humana": "={{ $json.requiere_humano ? 'Sí' : 'No' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre o usuario",
+              "displayName": "Nombre o usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Consulta original",
+              "displayName": "Consulta original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tipo de consulta",
+              "displayName": "Tipo de consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resumen",
+              "displayName": "Resumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Prioridad",
+              "displayName": "Prioridad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Requiere atención humana",
+              "displayName": "Requiere atención humana",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2080,
+        620
+      ],
+      "id": "117af3c3-4767-4171-a620-259a08d1a60a",
+      "name": "Registrar en planilla Consultas",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Manager – Cinco Sentidos (TP2)\n1. Regla fija costo 0 tokens: si el cliente escribe \"turno\" → derivación a secretaria.\n2. Clasificador (taxonomía cerrada): producto | tratamiento | turno | otro.\n3. Set limpia el payload → Switch enruta → Execute Workflow (Wait for child to finish ON).\n4. Fallos: error output del clasificador y de cada Worker → contingencia.\n5. Registro final → Telegram + Slack + Sheets.",
+        "height": 260,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -40
+      ],
+      "id": "15d2bd67-c50e-4b88-afce-5c936e693785",
+      "name": "Nota"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibir consulta": {
+      "main": [
+        [
+          {
+            "node": "¿Respondió \"turno\"?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Respondió \"turno\"?": {
+      "main": [
+        [
+          {
+            "node": "Derivación a secretaria",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Clasificador de intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Clasificador de intención",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificador de intención": {
+      "main": [
+        [
+          {
+            "node": "Preparar datos para Worker",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contingencia clasificador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos para Worker": {
+      "main": [
+        [
+          {
+            "node": "Enrutar por intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutar por intención": {
+      "main": [
+        [
+          {
+            "node": "Llamar Worker Productos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Llamar Worker Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta turno",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Derivar a persona del equipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar Worker Productos": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contingencia Worker caído",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar Worker Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contingencia Worker caído",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta turno": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Derivar a persona del equipo": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contingencia Worker caído": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contingencia clasificador": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Derivación a secretaria": {
+      "main": [
+        [
+          {
+            "node": "Registro final (contexto unificado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro final (contexto unificado)": {
+      "main": [
+        [
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log de trazabilidad (Slack)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Registrar en planilla Consultas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

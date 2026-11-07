@@ -1,0 +1,215 @@
+{
+  "name": "TP2 - Worker Productos",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje_original"
+            },
+            {
+              "name": "tipo_consulta"
+            }
+          ]
+        }
+      },
+      "id": "65df4d54-3a67-4649-a4c2-10df50fa702f",
+      "typeVersion": 1.1,
+      "name": "Entrada Worker Productos",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 703811774,
+          "mode": "list",
+          "cachedResultName": "Productos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=703811774"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "id": "855eba76-c8e9-4e8a-b78a-553b158a0855",
+      "name": "Get Productos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "catalogo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ],
+      "id": "4c16be2a-f8e0-4a9f-950c-f044e2bd38d5",
+      "name": "Agrupar Productos"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta: ' + $('Entrada Worker Productos').first().json.mensaje_original + '\\nCatálogo: ' + JSON.stringify($json.catalogo) }}",
+        "options": {
+          "systemMessage": "Sos el asistente de productos de Cinco Sentidos. Respondé en español, en forma breve y amable, usando únicamente la información del catálogo recibido.\nSi corresponde, informá el nombre, el detalle y el precio. Informá el stock solo si preguntan por disponibilidad; si el stock es 0, decí que por el momento no hay unidades.\nNo inventes productos, precios, stock, beneficios ni recomendaciones de salud. No muestres textos internos de la planilla como 'Completar marca...'.\nSi no encontrás lo que pide la persona, decí que una persona del equipo lo va a confirmar."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        660,
+        300
+      ],
+      "id": "9b953698-3a13-4287-8439-9fa5a42e85cf",
+      "name": "AI Agent Productos"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        660,
+        520
+      ],
+      "id": "e9fe390b-ce4d-4f55-aaa6-621c4e6efbc0",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d68377e1-3e5f-4775-8134-3229b1c08560",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "752bdb9d-ce83-47f6-889e-221fc523328f",
+              "name": "worker",
+              "value": "productos",
+              "type": "string"
+            },
+            {
+              "id": "dc4cb3f7-e8a8-43eb-9bc8-0838ec33f9cc",
+              "name": "mensaje_recibido",
+              "value": "={{ $('Entrada Worker Productos').first().json.mensaje_original }}",
+              "type": "string"
+            },
+            {
+              "id": "8f8c782b-cbbf-40ff-a212-52397021f208",
+              "name": "respuesta_cliente",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        960,
+        300
+      ],
+      "id": "c868751f-f042-4efb-9fc0-b14fbb377671",
+      "name": "Respuesta del Worker"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada Worker Productos": {
+      "main": [
+        [
+          {
+            "node": "Get Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Productos": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Productos": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Productos": {
+      "main": [
+        [
+          {
+            "node": "Respuesta del Worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Productos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

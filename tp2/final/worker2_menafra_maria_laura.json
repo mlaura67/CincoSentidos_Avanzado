@@ -1,0 +1,295 @@
+{
+  "name": "TP2 - Worker Tratamientos",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje_original"
+            },
+            {
+              "name": "tipo_consulta"
+            }
+          ]
+        }
+      },
+      "id": "8f599a65-7850-4714-b7e8-b1e294723467",
+      "typeVersion": 1.1,
+      "name": "Entrada Worker Tratamientos",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        48,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 431725353,
+          "mode": "list",
+          "cachedResultName": "Tratamientos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=431725353"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        272,
+        320
+      ],
+      "id": "9ea85805-665f-4496-8726-8cde6f17a63d",
+      "name": "Get Tratamientos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "catalogo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        480,
+        320
+      ],
+      "id": "16e5b81d-4174-4cf1-88ad-9b692a290487",
+      "name": "Agrupar Tratamientos"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta: ' + $('Entrada Worker Tratamientos').first().json.mensaje_original + '\\nCatálogo: ' + JSON.stringify($json.catalogo) }}",
+        "options": {
+          "systemMessage": "Sos el asistente de tratamientos de Cinco Sentidos. Respondé en español, en forma breve y amable, usando únicamente la información del catálogo recibido.\nSi corresponde, informá el nombre, el detalle y el precio. No confirmes turnos, fechas ni horarios.\nNo inventes productos, precios, stock, beneficios ni recomendaciones de salud. No muestres textos internos de la planilla como 'Completar marca...'.\nSi no encontrás lo que pide la persona, decí que una persona del equipo lo va a confirmar.\nFORMATO: respondé como mensaje de chat, sin tablas, sin códigos (TR-xxx / PR-xxx) y en no más de 6 líneas.\nSi la consulta es general (por ejemplo \"tratamiento facial\"), listá solo nombre y precio de cada opción, una por línea, y preguntá cuál le interesa.\nTolerá errores de tipeo (por ejemplo \"facil\" = \"facial\")."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        704,
+        320
+      ],
+      "id": "a571bf79-a498-49a7-a410-e7ac6e9a4225",
+      "name": "AI Agent Tratamientos",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        704,
+        544
+      ],
+      "id": "1ce485ab-0454-4057-a765-aa3566f23f68",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9347aac6-890e-4afa-8b8c-95608848fd27",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "43cd73d4-ca46-4f00-b475-8d5d5fcf057b",
+              "name": "worker",
+              "value": "tratamientos",
+              "type": "string"
+            },
+            {
+              "id": "63669519-49a3-4946-89f3-b00448f32a2d",
+              "name": "data",
+              "value": "={{ { mensaje_recibido: $('Entrada Worker Tratamientos').first().json.mensaje_original, tipo_consulta: $('Entrada Worker Tratamientos').first().json.tipo_consulta } }}",
+              "type": "object"
+            },
+            {
+              "id": "a3a77e42-6428-41f6-8233-1d7b5c587d44",
+              "name": "respuesta_cliente",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1008,
+        240
+      ],
+      "id": "bdc5dfb2-52b4-4cfc-a9f2-ed4f281b78db",
+      "name": "Respuesta del Worker"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "32e79db4-880c-4d6b-8734-b742b6ac96c1",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "46666ccc-4744-4d80-b840-12fba992ee75",
+              "name": "worker",
+              "value": "tratamientos",
+              "type": "string"
+            },
+            {
+              "id": "2db40e27-b22b-4a56-b36d-8bbaa421ed9c",
+              "name": "data",
+              "value": "={{ { mensaje_recibido: $('Entrada Worker Tratamientos').first().json.mensaje_original, tipo_consulta: $('Entrada Worker Tratamientos').first().json.tipo_consulta, error: $json.error?.message || 'Error al consultar el catálogo' } }}",
+              "type": "object"
+            },
+            {
+              "id": "9d9f5136-28cc-4e8c-88dd-6cecc85638f2",
+              "name": "respuesta_cliente",
+              "value": "En este momento no pude consultar el catálogo de tratamientos. Ya le pasamos tu consulta al equipo y te van a responder a la brevedad.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1008,
+        464
+      ],
+      "id": "871e5ba0-1816-40a0-ab48-b0c7a8ed661b",
+      "name": "Respuesta de error"
+    },
+    {
+      "parameters": {
+        "content": "## Worker Tratamientos\nTarea única: responder consultas de tratamientos con datos de la pestaña Tratamientos de Google Sheets.\n\n**Entrada:** mensaje_original, tipo_consulta\n**Salida OK:** {status: success, worker, data, respuesta_cliente}\n**Salida error:** {status: error, worker, data.error, respuesta_cliente}\nTimeout del workflow: 60 s",
+        "height": 240,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1e6f7f7d-356c-467a-96c3-6cc507dc9e99",
+      "name": "Nota Worker"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada Worker Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Get Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta de error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Respuesta del Worker",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta de error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Tratamientos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f01cda00-7a46-470f-8e8f-74db9e44f055",
+  "meta": {
+    "instanceId": "ab87367ab53ca13eca24e9c8e2892240b8ad2c96e5f37446be3c7dc5df162b0f"
+  },
+  "nodeGroups": [],
+  "id": "4Qk3yCo3aXJqpaW0",
+  "tags": []
+}

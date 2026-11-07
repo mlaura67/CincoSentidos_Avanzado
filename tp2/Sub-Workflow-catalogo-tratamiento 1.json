@@ -1,0 +1,442 @@
+{
+  "name": "Sub-Workflow-catalogo-tratamiento 1",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje_original"
+            },
+            {
+              "name": "chat_id",
+              "type": "number"
+            },
+            {
+              "name": "tipo_consulta"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "Worker - Catálogo Productos y Tratamientos",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8c6a9f88-3c9d-4f14-b2eb-c5799cbec240",
+              "leftValue": "={{ $json.tipo_consulta }}",
+              "rightValue": "producto",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        720,
+        256
+      ],
+      "id": "524714c6-4f68-42f7-8f5a-141f97de0df8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 703811774,
+          "mode": "list",
+          "cachedResultName": "Productos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=703811774"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        112
+      ],
+      "id": "0722392a-4c7b-4db0-8fad-650d2f61788b",
+      "name": "Get Producto",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 431725353,
+          "mode": "list",
+          "cachedResultName": "Tratamientos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=431725353"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        944,
+        336
+      ],
+      "id": "06468fbc-f6b9-4da3-bbb9-5379d6b9409c",
+      "name": "Get Tratamiento",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta: ' + $('Worker - Catálogo Productos y Tratamientos').first().json.mensaje_original + '\\nTipo de consulta: ' + $('Worker - Catálogo Productos y Tratamientos').first().json.tipo_consulta + '\\nInformación del catálogo: ' + JSON.stringify($json.catalogo || $json.tratamientos) }}",
+        "options": {
+          "systemMessage": "Sos el asistente de catálogo de Cinco Sentidos. Respondé en español, con amabilidad y usando únicamente la información del catálogo recibido. Si corresponde, informá el nombre, el detalle y el precio del producto o tratamiento. Informá el stock solo cuando consulten por disponibilidad. No inventes productos, precios, stock, beneficios ni recomendaciones clínicas. Si no encontrás la información solicitada, o la consulta trata sobre una reacción, irritación o problema de salud, indicá que debe responder una persona del equipo."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1504,
+        224
+      ],
+      "id": "69f116a6-b4fd-4319-9898-6b228415c01c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "catalogo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        128
+      ],
+      "id": "2f092ddc-54c1-43f1-b12e-a0de290fb1b2",
+      "name": "Agrupar Productos"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "tratamientos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        320
+      ],
+      "id": "32d12dfc-7fd7-4846-8b59-935e4ca7938b",
+      "name": "Agrupar Tratamientos"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        592
+      ],
+      "id": "c183caf4-1296-4381-a402-c28b06d7410a",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "producto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e9576650-3cb0-4b76-97bb-b81b90c7fa71"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "producto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8c01bb94-a2b2-492d-90d2-7f0c41609760",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "tratamiento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tratamiento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9d46717d-a7a3-4520-895a-bedf189ca42d",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "turno",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "turno"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        336
+      ],
+      "id": "9bf0bec9-1558-45a6-90d8-563cdece2caf",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ff3c6014-213f-4402-9651-2266aedc22ad",
+              "name": "output",
+              "value": "Para coordinar tu turno, respondé «turno» y te derivamos a una secretaria para concretarlo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        704,
+        576
+      ],
+      "id": "e0d5f9ba-f5da-43d3-8a22-9d5acf77ee97",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Worker - Catálogo Productos y Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get Producto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Tratamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Producto": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tratamiento": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Productos": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9f7779f3-6f95-4388-99eb-ba75eb1e9005",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ab87367ab53ca13eca24e9c8e2892240b8ad2c96e5f37446be3c7dc5df162b0f"
+  },
+  "nodeGroups": [],
+  "id": "HS4ojR8vlWX6cVYV",
+  "tags": []
+}

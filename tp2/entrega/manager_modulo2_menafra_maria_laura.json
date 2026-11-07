@@ -1,0 +1,675 @@
+{
+  "name": "TP2 - Manager Cinco Sentidos",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "3c1bac71-ddba-4dba-9709-11a35c5d4086",
+      "name": "Recibir consulta",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Cliente: {{ $json.message.from.first_name }} {{ $json.message.from.last_name || '' }}\nMensaje: {{ $json.message.text }}",
+        "options": {
+          "systemMessage": "ROL\nSos el asistente de recepción de consultas de Cinco Sentidos, un emprendimiento que ofrece tratamientos faciales y vende productos para el cuidado facial, corporal y capilar.\n\nOBJETIVO\n- Comprender qué necesita la persona.\n- Clasificar la consulta en una categoría.\n- Resumirla en forma clara para el equipo.\n\nCATEGORÍAS (usá exactamente uno de estos valores en tipo_consulta)\n- producto: productos faciales, corporales o capilares, incluidas consultas de precio o stock.\n- tratamiento: tratamientos faciales.\n- turno: pedir, reservar, cambiar o confirmar un turno.\n- otro: reacción o problema de salud, saludos u otros temas.\n\nREGLAS Y LÍMITES\n- No inventes precios, disponibilidad, ingredientes, beneficios, resultados ni horarios.\n- No diagnostiques afecciones ni recomiendes tratamientos personalizados.\n- Si la persona menciona irritación, alergia, reacción adversa, dolor u otro problema de salud, no des recomendaciones: indicá suspender el uso del producto y que una persona del equipo la va a contactar.\n- No confirmes reservas, compras, pagos ni entregas.\n\nFORMATO DE RESPUESTA\nRespondé SOLO con un objeto JSON válido, sin texto adicional ni bloques de código:\n{\n  \"tipo_consulta\": \"producto | tratamiento | turno | otro\",\n  \"respuesta_cliente\": \"Mensaje breve, cálido y en español para el cliente. Solo se usa cuando tipo_consulta es otro.\",\n  \"resumen_equipo\": \"Consulta: ...\\nCategoría: ...\\nPrioridad: Alta/Media/Baja\\nRequiere atención humana: Sí/No\"\n}",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        220,
+        300
+      ],
+      "id": "6f53fc09-ce38-4e52-8083-2fda428b537b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        220,
+        520
+      ],
+      "id": "dacd4d57-167b-43ee-942d-2b8747f778aa",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f8887a18-d7ef-4a55-ace2-fa71232b6504",
+              "name": "mensaje_original",
+              "value": "={{ $('Recibir consulta').first().json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "113cb28a-56c9-4520-bd1a-7c0cb444dbef",
+              "name": "tipo_consulta",
+              "value": "={{ (() => { try { return JSON.parse($('AI Agent').first().json.output) } catch (e) { return {} } })().tipo_consulta || 'otro' }}",
+              "type": "string"
+            },
+            {
+              "id": "ca27b882-dff1-4526-91e5-e6ccf5eb148b",
+              "name": "respuesta_cliente",
+              "value": "={{ (() => { try { return JSON.parse($('AI Agent').first().json.output) } catch (e) { return {} } })().respuesta_cliente || 'Gracias por tu consulta. Una persona del equipo te va a responder a la brevedad.' }}",
+              "type": "string"
+            },
+            {
+              "id": "da95b29c-c079-441b-a14e-2373a0ce2186",
+              "name": "resumen_equipo",
+              "value": "={{ (() => { try { return JSON.parse($('AI Agent').first().json.output) } catch (e) { return {} } })().resumen_equipo || $('AI Agent').first().json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        500,
+        300
+      ],
+      "id": "2907afd5-430d-4357-bf88-a362d771af3e",
+      "name": "Preparar datos"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "44db5fda-00aa-430b-b0e1-f2a0dfd0dddd",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "producto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "producto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3ce1d11e-d65e-4201-bede-d933d5d2b5c5",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "tratamiento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tratamiento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0b7f6223-9159-453f-8df4-5f9e4cca5872",
+                    "leftValue": "={{ $json.tipo_consulta }}",
+                    "rightValue": "turno",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "turno"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "otro"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        300
+      ],
+      "id": "9b1d652c-f316-4964-a02f-42a7f08b6d24",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "PojhRf8YM5B1mttw",
+          "mode": "list",
+          "cachedResultName": "TP2 - Worker Productos",
+          "cachedResultUrl": "/workflow/PojhRf8YM5B1mttw"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje_original": "={{ $json.mensaje_original }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje_original",
+              "displayName": "mensaje_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1000,
+        60
+      ],
+      "id": "099884dd-2975-4623-ba2a-53c2c1580811",
+      "name": "Worker Productos",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4Qk3yCo3aXJqpaW0",
+          "mode": "list",
+          "cachedResultName": "TP2 - Worker Tratamientos",
+          "cachedResultUrl": "/workflow/4Qk3yCo3aXJqpaW0"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mensaje_original": "={{ $json.mensaje_original }}",
+            "tipo_consulta": "={{ $json.tipo_consulta }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "mensaje_original",
+              "displayName": "mensaje_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_consulta",
+              "displayName": "tipo_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1000,
+        260
+      ],
+      "id": "9815a8ef-0476-405d-8a65-88514276b200",
+      "name": "Worker Tratamientos",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "190c7b1d-cfe9-4287-9c65-357b7e1c23e2",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "8484a44c-0fc2-4780-b17b-eec1c372d9d1",
+              "name": "worker",
+              "value": "ninguno (turno → secretaria)",
+              "type": "string"
+            },
+            {
+              "id": "a9a00f68-47d1-402e-a8e8-177f95b4436e",
+              "name": "data",
+              "value": "={{ { mensaje_recibido: $json.mensaje_original } }}",
+              "type": "object"
+            },
+            {
+              "id": "50584c27-fed6-4ef1-8c3b-a7314bfb4c2d",
+              "name": "respuesta_cliente",
+              "value": "Gracias por escribirnos. Ya le pasamos tu pedido de turno a la secretaria y se va a comunicar con vos para coordinarlo.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1000,
+        460
+      ],
+      "id": "5577d2f2-3224-446a-bda4-0491161b22ac",
+      "name": "Respuesta turno"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "023243fc-a686-45ea-8648-6b841c9f83d2",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "83cf2792-9521-4d68-91ba-3ba2f4ee9d13",
+              "name": "worker",
+              "value": "ninguno (atención humana)",
+              "type": "string"
+            },
+            {
+              "id": "9f097151-dd44-4d21-9be4-f53b28cea92f",
+              "name": "data",
+              "value": "={{ { mensaje_recibido: $json.mensaje_original } }}",
+              "type": "object"
+            },
+            {
+              "id": "8a8d8387-b2f6-455f-a7bc-0fa1539647ac",
+              "name": "respuesta_cliente",
+              "value": "={{ $json.respuesta_cliente }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1000,
+        660
+      ],
+      "id": "9182abb4-7515-4a23-895a-4b2793139b3d",
+      "name": "Respuesta otro"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b8f838f1-9968-42d1-8ec0-862cbe19e12d",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "f7751e8a-0742-4dcc-af1d-25a26ad7ff1f",
+              "name": "worker",
+              "value": "={{ 'Worker de ' + $('Preparar datos').first().json.tipo_consulta + ' (no respondió)' }}",
+              "type": "string"
+            },
+            {
+              "id": "e1255969-feb8-439d-8bf8-0295e39449c2",
+              "name": "data",
+              "value": "={{ { error: $json.error?.message || 'El Worker no respondió' } }}",
+              "type": "object"
+            },
+            {
+              "id": "5441ed16-21d7-44eb-8e26-88f49f38cb61",
+              "name": "respuesta_cliente",
+              "value": "Gracias por tu consulta. En este momento no pudimos revisar el catálogo; ya se la pasamos al equipo y te van a responder a la brevedad.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1000,
+        -160
+      ],
+      "id": "2fb0e0ff-67a3-4be5-aaa6-3572e7b1325a",
+      "name": "Worker no respondió"
+    },
+    {
+      "parameters": {
+        "content": "## Manager – Cinco Sentidos (TP2)\n**Taxonomía cerrada:** producto | tratamiento | turno | otro\n- producto → Worker Productos\n- tratamiento → Worker Tratamientos\n- turno → derivación a secretaria\n- otro (salud, saludos, dudas) → atención humana (fallback)\n\n**Datos al Worker (Set):** mensaje_original, tipo_consulta\n**Wait for child to finish:** activado\n**Si un Worker falla:** rama de error → \"Worker no respondió\"\n**Trazabilidad:** Slack registra Worker, parámetros, estado y respuesta",
+        "height": 320,
+        "width": 460
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -200
+      ],
+      "id": "55f35b3a-7af9-4c7e-8e80-bee7832fd114",
+      "name": "Nota Manager"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#consultas-cinco-sentidos",
+          "mode": "name"
+        },
+        "text": "=*Nueva consulta en Cinco Sentidos*\n*Cliente:* {{ $('Recibir consulta').first().json.message.from.first_name }} {{ $('Recibir consulta').first().json.message.from.last_name || '' }} (Telegram {{ $('Recibir consulta').first().json.message.from.username ? '@' + $('Recibir consulta').first().json.message.from.username : 'chat ' + $('Recibir consulta').first().json.message.chat.id }})\n*Mensaje:* {{ $('Recibir consulta').first().json.message.text }}\n\n*Worker invocado:* {{ $json.worker }}\n*Parámetros enviados:* mensaje_original = \"{{ $('Preparar datos').first().json.mensaje_original }}\", tipo_consulta = \"{{ $('Preparar datos').first().json.tipo_consulta }}\"\n*Estado:* {{ $json.status }}\n*Datos devueltos:* {{ JSON.stringify($json.data || {}) }}\n*Respuesta devuelta:* {{ $json.respuesta_cliente }}\n\n*Resumen para el equipo:*\n{{ $('Preparar datos').first().json.resumen_equipo }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "c7fd0702-88bd-4c11-b609-5281b7a9021d",
+      "name": "Aviso de supervisión",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1320,
+        260
+      ],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "wmnekaRGUJ5gS7uV",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Recibir consulta').first().json.message.chat.id }}",
+        "text": "={{ $json.respuesta_cliente }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "6d6a8b59-ef3a-4623-b0ad-b69d21098320",
+      "name": "Responder al cliente",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        460
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "ppvHMiOeq9p2vacB",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibir consulta": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Preparar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Worker Productos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta turno",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta otro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Productos": {
+      "main": [
+        [
+          {
+            "node": "Aviso de supervisión",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker no respondió",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Aviso de supervisión",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Worker no respondió",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta turno": {
+      "main": [
+        [
+          {
+            "node": "Aviso de supervisión",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta otro": {
+      "main": [
+        [
+          {
+            "node": "Aviso de supervisión",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worker no respondió": {
+      "main": [
+        [
+          {
+            "node": "Aviso de supervisión",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Responder al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

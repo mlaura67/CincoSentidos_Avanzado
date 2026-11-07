@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>Pre-entrega Módulo 2 – Menafra María Laura</title>
+<style>
+@page { size: A4; margin: 16mm 15mm; }
+* { box-sizing:border-box; }
+body { font-family: "DejaVu Sans", Arial, sans-serif; color:#222; font-size:10.5pt; line-height:1.5; margin:0; background:#fff; }
+h1 { font-size:18pt; margin:0 0 4px; }
+h2 { font-size:13pt; margin:20px 0 8px; border-bottom:1px solid #999; padding-bottom:3px; }
+h3 { font-size:11pt; margin:14px 0 6px; }
+p { margin:0 0 8px; }
+.meta { color:#555; font-size:10pt; margin-bottom:14px; }
+table { border-collapse:collapse; width:100%; margin:6px 0 10px; font-size:9.8pt; }
+th, td { border:1px solid #bbb; padding:5px 7px; text-align:left; vertical-align:top; }
+th { background:#eee; }
+pre { font-family:"DejaVu Sans Mono", Consolas, monospace; font-size:9pt; background:#f4f4f4; border:1px solid #ddd; padding:8px 10px; white-space:pre-wrap; margin:6px 0 10px; page-break-inside:avoid; }
+code { font-family:"DejaVu Sans Mono", monospace; font-size:9pt; }
+figure { margin:8px 0 14px; page-break-inside:avoid; }
+figure img { width:100%; border:1px solid #ccc; display:block; }
+figure img.chat { width:70%; }
+figcaption { font-size:9pt; color:#555; margin-top:3px; }
+ul { margin:0 0 8px 18px; padding:0; }
+.pb { page-break-before:always; }
+</style></head><body>
+
+<h1>Pre-entrega Módulo 2 – Sub-workflows Manager / Worker</h1>
+<p class="meta">Alumna: María Laura Menafra · AI Automation Avanzado · Proyecto: asistente de consultas de Cinco Sentidos</p>
+
+<h2>1. Qué hice</h2>
+<p>Partí del flujo de la entrega 1 (<em>Cinco Sentidos – Atención y supervisión</em>), que recibía las consultas por Telegram, las analizaba con un AI Agent, avisaba al equipo por Slack y respondía al cliente.</p>
+<p>Para esta entrega lo dividí en tres flujos:</p>
+<ul>
+<li><strong>TP2 – Manager Cinco Sentidos:</strong> recibe la consulta, decide de qué tipo es y la manda al Worker que corresponde. Al final responde al cliente y deja el registro en Slack.</li>
+<li><strong>TP2 – Worker Productos:</strong> busca en la planilla de Google Sheets (pestaña Productos) y responde con el precio y los datos del producto.</li>
+<li><strong>TP2 – Worker Tratamientos:</strong> hace lo mismo con la pestaña Tratamientos.</li>
+</ul>
+<p>Usé Telegram, n8n, Groq como modelo, Google Sheets como catálogo y Slack para el registro.</p>
+
+<h2>2. Workflow Manager</h2>
+<figure><img src="img/manager.png"><figcaption>Lienzo del Manager con los nodos Execute Workflow (Worker Productos y Worker Tratamientos).</figcaption></figure>
+<p>Recorrido: <strong>Recibir consulta</strong> (Telegram) → <strong>AI Agent</strong> (clasifica la consulta) → <strong>Preparar datos</strong> (Set) → <strong>Switch</strong> → Worker o respuesta directa → <strong>Aviso de supervisión</strong> (Slack) y <strong>Responder al cliente</strong> (Telegram).</p>
+
+<h2 class="pb">3. Workers</h2>
+<figure><img src="img/worker_productos.png"><figcaption>Worker Productos: Execute Workflow Trigger → Get Productos → Agrupar → AI Agent → Respuesta del Worker / Respuesta de error.</figcaption></figure>
+<figure><img src="img/worker_tratamientos.png"><figcaption>Worker Tratamientos: misma estructura, con la pestaña Tratamientos.</figcaption></figure>
+<p>Cada Worker hace una sola tarea: leer su pestaña del catálogo y responder la consulta solo con esos datos. En el prompt le indiqué que no invente precios ni stock y que, si no encuentra lo pedido, avise que una persona del equipo lo va a confirmar.</p>
+
+<h2 class="pb">4. Criterio de enrutamiento</h2>
+<p>El AI Agent del Manager clasifica cada mensaje en una de estas cuatro categorías (le pedí en el prompt que use solo estas):</p>
+<table>
+<tr><th>Categoría</th><th>Ejemplo</th><th>A dónde va</th></tr>
+<tr><td>producto</td><td>“¿Cuánto sale el shampoo?”</td><td>Worker Productos</td></tr>
+<tr><td>tratamiento</td><td>“¿Cuánto cuesta la exfoliación facial?”</td><td>Worker Tratamientos</td></tr>
+<tr><td>turno</td><td>“Necesito un turno”</td><td>Respuesta turno: se avisa que la secretaria lo va a contactar</td></tr>
+<tr><td>otro</td><td>Saludos, problemas de salud, otros temas</td><td>Respuesta otro: lo atiende una persona del equipo</td></tr>
+</table>
+<p>Después, el nodo <strong>Switch</strong> lee el campo <code>tipo_consulta</code> y envía la consulta por la salida que corresponde. “otro” es la salida por defecto (fallback): si el agente no clasifica bien, la consulta va a una persona.</p>
+<p>Los turnos y los temas de salud no van a un Worker porque no necesitan el catálogo y los tiene que atender una persona.</p>
+
+<h2>5. Datos que viajan entre Manager y Worker</h2>
+<h3>Lo que envía el Manager</h3>
+<p>Antes del Execute Workflow puse un nodo Set (“Preparar datos”) para mandar solo lo necesario y no todo lo que trae Telegram. El Worker recibe dos campos:</p>
+<pre>{
+  "mensaje_original": "Necesito saber el precio del shampoo",
+  "tipo_consulta": "producto"
+}</pre>
+
+<h3>Configuración del Execute Workflow</h3>
+<pre>Workflow: TP2 - Worker Productos
+Workflow Inputs:
+  mensaje_original = {{ $json.mensaje_original }}
+  tipo_consulta    = {{ $json.tipo_consulta }}
+Wait for child to finish (Wait For Sub-Workflow Completion): activado</pre>
+<p>El nodo del Worker Tratamientos está configurado igual. Con “Wait for child to finish” el Manager espera la respuesta del Worker antes de seguir.</p>
+
+<h3>Lo que devuelve el Worker</h3>
+<pre>{
+  "status": "success",
+  "worker": "productos",
+  "data": { "mensaje_recibido": "...", "tipo_consulta": "producto" },
+  "respuesta_cliente": "Shampoo – Envase de 400 ml. Precio: 10.000 ARS."
+}</pre>
+<p>El Manager usa <code>respuesta_cliente</code> para contestar por Telegram y el resto de los campos para el registro en Slack.</p>
+
+<h2>6. Registro en Slack</h2>
+<p>El nodo “Aviso de supervisión” deja en el canal #consultas-cinco-sentidos qué Worker se usó, qué datos se le mandaron y qué respondió. Ejemplo de una prueba:</p>
+<pre>Worker invocado: tratamientos
+Parámetros enviados: mensaje_original = "necesito saber cuánto sale el tratamiento facil", tipo_consulta = "tratamiento"
+Estado: success
+Respuesta devuelta: Lo siento, pero no encuentro un "tratamiento facil" en nuestro catálogo.
+Una persona de nuestro equipo confirmará la información y se comunicará contigo pronto.</pre>
+
+<h2>7. Si algo falla</h2>
+<ul>
+<li>En cada Worker, los nodos de Google Sheets y del AI Agent tienen activada la salida de error. Si fallan, el Worker igual devuelve un JSON con <code>"status": "error"</code> y un mensaje para el cliente (nodo “Respuesta de error”).</li>
+<li>En el Manager, si el Worker no responde, el Execute Workflow sale por “Error” hacia el nodo “Worker no respondió”, que le avisa al cliente que el equipo va a responder y deja el error en Slack.</li>
+</ul>
+
+<h2 class="pb">8. Pruebas</h2>
+<h3>Consulta de producto</h3>
+<figure><img src="img/exec_manager_producto.png"><figcaption>El Manager manda la consulta al Worker Productos y sigue hacia Slack y Telegram.</figcaption></figure>
+<figure><img src="img/exec_worker_productos.png"><figcaption>Ejecución del Worker Productos (correcta).</figcaption></figure>
+<figure><img class="chat" src="img/tg_producto.png"><figcaption>Respuesta en Telegram con el precio de la planilla.</figcaption></figure>
+
+<h3 class="pb">Consulta de tratamiento</h3>
+<figure><img src="img/exec_manager_tratamiento.png"><figcaption>El Manager manda la consulta al Worker Tratamientos.</figcaption></figure>
+<figure><img src="img/exec_worker_tratamientos.png"><figcaption>Ejecución del Worker Tratamientos (correcta).</figcaption></figure>
+<figure><img class="chat" src="img/tg_tratamiento.png"><figcaption>Escribí “facil” en vez de “facial”: el asistente no inventó un tratamiento y derivó al equipo.</figcaption></figure>
+
+<h3 class="pb">Consulta de turno</h3>
+<figure><img src="img/exec_manager_turno.png"><figcaption>El turno va por la salida “turno” del Switch, sin pasar por un Worker.</figcaption></figure>
+<figure><img class="chat" src="img/tg_turno.png"><figcaption>Respuesta en Telegram: se deriva a la secretaria.</figcaption></figure>
+
+</body></html>

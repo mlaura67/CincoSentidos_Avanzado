@@ -1,0 +1,321 @@
+{
+  "name": "TP2 - Worker Tratamientos (Cinco Sentidos)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje_original",
+              "type": "string"
+            },
+            {
+              "name": "tipo_consulta",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "469c1b91-6cd0-4fb8-a94b-e10fde2ae22e",
+      "typeVersion": 1.1,
+      "name": "Entrada Worker Tratamientos",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 431725353,
+          "mode": "list",
+          "cachedResultName": "Tratamientos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=431725353"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "id": "3e3ffa23-b078-44ee-b86e-097781917e42",
+      "name": "Leer catálogo Tratamientos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "catalogo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        440,
+        200
+      ],
+      "id": "adf806a5-942b-470a-8afa-9dd27a65cdca",
+      "name": "Agrupar Tratamientos"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta del cliente: ' + $('Entrada Worker Tratamientos').first().json.mensaje_original + '\\nCatálogo de tratamientos: ' + JSON.stringify($json.catalogo) }}",
+        "options": {
+          "systemMessage": "Sos el Worker de tratamientos de Cinco Sentidos (cosmetología). Tu única tarea es buscar en el catálogo recibido el/los tratamientos que pide el cliente y responder con datos reales del catálogo.\nREGLAS:\n- Usá únicamente la información del catálogo. No inventes nombres, precios, stock, beneficios ni resultados.\n- Nunca confirmes turnos, fechas ni disponibilidad horaria.\n- No muestres al cliente textos internos de la planilla como 'Completar marca...' o 'Servicio de ejemplo'.\n- Si no encontrás lo solicitado, poné encontrado=false, requiere_humano=true y decí que una persona del equipo lo va a confirmar.\n- Si la consulta menciona reacción, irritación, alergia o un problema de salud, no recomiendes nada: indicá suspender el uso y que una persona del equipo se va a comunicar; requiere_humano=true.\nFORMATO: respondé SOLO un objeto JSON válido, sin texto extra ni bloques de código:\n{\"encontrado\": true, \"data\": {\"codigo\": \"\", \"nombre\": \"\", \"detalle\": \"\", \"precio\": 0}, \"respuesta_cliente\": \"mensaje breve, cálido y en español\", \"requiere_humano\": false}",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        660,
+        200
+      ],
+      "id": "05c810b4-3253-4ade-8d7d-228b083c2636",
+      "name": "Agente Tratamientos",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        660,
+        420
+      ],
+      "id": "d1838aa5-a36c-43d3-bb79-eea4b21eb22f",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "54023902-d24e-4ba8-833f-a1fa48df51d1",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "4994cc73-b89e-4174-bd69-c035e2f5cdbb",
+              "name": "worker",
+              "value": "tratamientos",
+              "type": "string"
+            },
+            {
+              "id": "8987addc-f07b-4780-9878-6755ab9ee2a6",
+              "name": "parametros_recibidos",
+              "value": "={{ { mensaje_original: $('Entrada Worker Tratamientos').first().json.mensaje_original, tipo_consulta: $('Entrada Worker Tratamientos').first().json.tipo_consulta } }}",
+              "type": "object"
+            },
+            {
+              "id": "99c2c2f7-3ec2-4dd6-943f-838cc1a171a0",
+              "name": "encontrado",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.encontrado ?? false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "f3d64f09-8a33-4334-b6de-0e869154a5bb",
+              "name": "data",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.data ?? {} }}",
+              "type": "object"
+            },
+            {
+              "id": "631dd8bc-ab3f-415a-bf67-a08a4a622459",
+              "name": "respuesta_cliente",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })()?.respuesta_cliente || $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "94202a9f-ee47-472e-9441-2478492c6b83",
+              "name": "requiere_humano",
+              "value": "={{ (() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })() ? Boolean((() => { try { return JSON.parse(String($json.output).replace(/```json|```/g, '').trim()) } catch (e) { return null } })().requiere_humano) : true }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        120
+      ],
+      "id": "0c6f9735-c71d-4f72-bf1d-be3546c0cb38",
+      "name": "Salida estructurada (success)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7da8a369-5963-449f-9249-223a91d7f835",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "2cba754d-21aa-457d-826d-45cb54a3a949",
+              "name": "worker",
+              "value": "tratamientos",
+              "type": "string"
+            },
+            {
+              "id": "e1ac38e4-827f-4487-89bb-368df92c3218",
+              "name": "parametros_recibidos",
+              "value": "={{ { mensaje_original: $('Entrada Worker Tratamientos').first().json.mensaje_original, tipo_consulta: $('Entrada Worker Tratamientos').first().json.tipo_consulta } }}",
+              "type": "object"
+            },
+            {
+              "id": "cba9d683-bedb-4142-97e5-07e4409d615f",
+              "name": "encontrado",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "9e3d7f02-7ff5-4383-92fb-ff2fab4494dd",
+              "name": "data",
+              "value": "={{ {} }}",
+              "type": "object"
+            },
+            {
+              "id": "35497693-f4c6-4d60-976b-7f5d0f26ecdb",
+              "name": "respuesta_cliente",
+              "value": "En este momento no pude consultar el catálogo de tratamientos. Ya le pasé tu consulta al equipo y te van a responder a la brevedad.",
+              "type": "string"
+            },
+            {
+              "id": "114f3496-fde4-4080-8642-2751ede85d76",
+              "name": "requiere_humano",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "fdd6be38-afc2-4343-a5bb-55e1b98b6bfd",
+              "name": "error",
+              "value": "={{ $json.error?.message || $json.error || 'Error no especificado' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        420
+      ],
+      "id": "6c299fd5-d6c2-4738-9cdf-12bdddfae0ea",
+      "name": "Salida de contingencia (error)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada Worker Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Leer catálogo Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer catálogo Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida de contingencia (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Agente Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Salida estructurada (success)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida de contingencia (error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Tratamientos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 60,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": []
+}

@@ -1,0 +1,215 @@
+{
+  "name": "TP2 - Worker Tratamientos",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "mensaje_original"
+            },
+            {
+              "name": "tipo_consulta"
+            }
+          ]
+        }
+      },
+      "id": "e5e5599c-3e15-4195-8aef-c9491990da6a",
+      "typeVersion": 1.1,
+      "name": "Entrada Worker Tratamientos",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY",
+          "mode": "list",
+          "cachedResultName": "Consultas_cinco_sentidos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 431725353,
+          "mode": "list",
+          "cachedResultName": "Tratamientos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jqWMIY2JBu75_0l_4RB1gqOl3cgUp6JbgspirMHbucY/edit#gid=431725353"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "id": "095aa7a7-3358-4543-bc61-587bcde3595d",
+      "name": "Get Tratamientos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "P9HDPqu19sO1Gfja",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "catalogo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ],
+      "id": "a8a581fe-8db8-461b-8f2c-5927fe67bc7e",
+      "name": "Agrupar Tratamientos"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Consulta: ' + $('Entrada Worker Tratamientos').first().json.mensaje_original + '\\nCatálogo: ' + JSON.stringify($json.catalogo) }}",
+        "options": {
+          "systemMessage": "Sos el asistente de tratamientos de Cinco Sentidos. Respondé en español, en forma breve y amable, usando únicamente la información del catálogo recibido.\nSi corresponde, informá el nombre, el detalle y el precio. No confirmes turnos, fechas ni horarios.\nNo inventes productos, precios, stock, beneficios ni recomendaciones de salud. No muestres textos internos de la planilla como 'Completar marca...'.\nSi no encontrás lo que pide la persona, decí que una persona del equipo lo va a confirmar."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        660,
+        300
+      ],
+      "id": "8b3e07df-60dd-472c-aed6-43e225a6bf63",
+      "name": "AI Agent Tratamientos"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        660,
+        520
+      ],
+      "id": "2f309079-6b3b-4605-b64f-ecee4a6ba208",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "mT0uIQpt2lNvDe05",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "174238e1-25f3-47b6-8fed-dba8792bbc03",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "8dfae01a-c40f-414e-aaab-66ceea6b8937",
+              "name": "worker",
+              "value": "tratamientos",
+              "type": "string"
+            },
+            {
+              "id": "b852ae95-ab6a-49b5-87d8-7600d1f0df7a",
+              "name": "mensaje_recibido",
+              "value": "={{ $('Entrada Worker Tratamientos').first().json.mensaje_original }}",
+              "type": "string"
+            },
+            {
+              "id": "1c20aad5-b943-41e5-a119-b53ce05988fd",
+              "name": "respuesta_cliente",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        960,
+        300
+      ],
+      "id": "cd69f375-976b-4161-8cd1-9439d2a968b3",
+      "name": "Respuesta del Worker"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Entrada Worker Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Get Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Agrupar Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Tratamientos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Tratamientos": {
+      "main": [
+        [
+          {
+            "node": "Respuesta del Worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Tratamientos",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
